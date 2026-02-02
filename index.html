@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vòng quay may mắn</title>
+<style>
+html,body{
+  margin:0;
+  background:#8b1d1d;
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.box{
+  position:relative;
+  width:320px;
+  height:320px;
+}
+canvas{display:block}
+.pointer{
+  position:absolute;
+  top:-8px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:24px solid #ff5722;
+  z-index:5;
+}
+.btn{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:96px;
+  height:96px;
+  border-radius:50%;
+  background:#ff5722;
+  color:#fff;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 14px rgba(0,0,0,.45);
+  cursor:pointer;
+  user-select:none;
+  z-index:10;
+}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="pointer"></div>
+  <canvas id="wheel" width="300" height="300"></canvas>
+  <div class="btn" id="spin">QUAY</div>
+</div>
+
+<script>
+const prizes=[
+ "Chúc may mắn",
+ "Trượt",
+ "Thêm lượt",
+ "Mất lượt",
+ "Jackpot 5.000.000đ",
+ "3 Giỏ quà Tết"
+];
+
+const c=document.getElementById("wheel");
+const ctx=c.getContext("2d");
+const r=c.width/2;
+const arc=2*Math.PI/prizes.length;
+let angle=0,spinning=false;
+
+function draw(){
+  ctx.clearRect(0,0,c.width,c.height);
+  for(let i=0;i<prizes.length;i++){
+    ctx.beginPath();
+    ctx.moveTo(r,r);
+    ctx.fillStyle=i%2?"#ffe082":"#ffd180";
+    ctx.arc(r,r,r,i*arc,(i+1)*arc);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(r,r);
+    ctx.rotate(i*arc+arc/2);
+    ctx.textAlign="right";
+    ctx.fillStyle="#333";
+    ctx.font="14px Arial";
+    ctx.fillText(prizes[i],r-10,5);
+    ctx.restore();
+  }
+}
+draw();
+
+document.getElementById("spin").addEventListener("click",()=>{
+  if(spinning) return;
+  spinning=true;
+  const start=angle;
+  const end=start+Math.random()*360+2160;
+  let t0=null;
+
+  function anim(t){
+    if(!t0) t0=t;
+    let p=(t-t0)/4000; if(p>1)p=1;
+    angle=start+(end-start)*(1-Math.pow(1-p,3));
+
+    ctx.save();
+    ctx.translate(r,r);
+    ctx.rotate(angle*Math.PI/180);
+    ctx.translate(-r,-r);
+    draw();
+    ctx.restore();
+
+    if(p<1) requestAnimationFrame(anim);
+    else{
+      spinning=false;
+      const d=(360-angle%360);
+      const i=Math.floor(d/(360/prizes.length));
+      alert(prizes[i]);
+    }
+  }
+  requestAnimationFrame(anim);
+});
+</script>
+
+</body>
+</html>
