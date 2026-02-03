@@ -188,6 +188,7 @@ function startCountdown(){
 }
 
 spinBtn.onclick=()=>{
+    coinEffectOnClick();
     if(spinning) return;
     let d=getData();
     if(d.turns<=0) return;
