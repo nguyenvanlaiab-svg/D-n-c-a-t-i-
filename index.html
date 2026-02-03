@@ -10,26 +10,61 @@ body{margin:0;font-family:Arial;text-align:center;background:#fff}
 h1{margin:15px 0}
 .top-bar{background:#111;color:#00ff66;padding:10px;font-weight:bold}
 .timer{color:#ff5252;font-size:14px;margin-top:5px}
+
 .wheel-box{position:relative;width:300px;height:300px;margin:20px auto}
 .arrow{
  position:absolute;top:-15px;left:50%;transform:translateX(-50%);
  width:0;height:0;border-left:15px solid transparent;
  border-right:15px solid transparent;border-bottom:25px solid red;z-index:10}
 canvas{width:100%;height:100%;border-radius:50%}
+
 button{
  padding:15px 35px;font-size:18px;background:#ff5722;
  color:#fff;border:none;border-radius:8px;cursor:pointer}
 button:disabled{background:#aaa}
+
+/* popup */
 .popup{
  position:fixed;top:0;left:0;right:0;bottom:0;
  background:rgba(0,0,0,.6);display:none;
  align-items:center;justify-content:center;z-index:99}
 .popup div{
  background:#fff;padding:25px;border-radius:10px;width:80%}
+
+/* LIVE button */
+.live-btn{
+ position:fixed;
+ top:80px;
+ right:15px;
+ background:#ff0000;
+ color:#fff;
+ padding:8px 14px;
+ border-radius:20px;
+ font-size:14px;
+ font-weight:bold;
+ z-index:999;
+ display:flex;
+ align-items:center;
+ gap:6px;
+ animation:blink 1s infinite;
+ box-shadow:0 0 10px rgba(255,0,0,.7);
+}
+.live-dot{
+ width:8px;height:8px;background:#00ff3c;border-radius:50%;
+ animation:pulse 1s infinite;
+}
+@keyframes blink{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.6)}100%{transform:scale(1)}}
 </style>
 </head>
 
 <body>
+
+<!-- LIVE -->
+<div class="live-btn">
+ <div class="live-dot"></div>
+ <span id="liveCount">61,234+</span> đang chơi
+</div>
 
 <h1>Vòng quay may mắn</h1>
 
@@ -46,28 +81,31 @@ button:disabled{background:#aaa}
 <button id="spinBtn">🎯 QUAY NGAY</button>
 
 <div class="popup" id="popup">
-  <div>
-    <h3 id="result"></h3>
-    <button onclick="closePopup()">OK</button>
-  </div>
+ <div>
+  <h3 id="result"></h3>
+  <button onclick="closePopup()">OK</button>
+ </div>
 </div>
 
 <script>
+/* ====== LIVE COUNT ====== */
+let live=61234;
+setInterval(()=>{
+ let c=Math.floor(Math.random()*50)+1;
+ live += Math.random()>0.5?c:-c;
+ if(live<60000) live=60000;
+ document.getElementById("liveCount").innerText=live.toLocaleString()+"+";
+},2000);
+
+/* ====== WHEEL ====== */
 const prizes=[
  "Điện thoại Samsung","Máy sấy tóc","Bàn là 🔥",
  "+50.000đ","+100.000đ","+200.000đ","+300.000đ","+500.000đ",
  "-70.000đ","-80.000đ","-90.000đ","-200.000đ",
  "Mất lượt","Thêm lượt","Chúc may mắn","3 giỏ quà Tết"
 ];
-
-// ❌ không cho trúng
 const blocked=[0,15];
-
-// chỉ chọn kết quả an toàn
-const allowed = prizes
-.map((p,i)=>({p,i}))
-.filter(x=>!blocked.includes(x.i));
-
+const allowed=prizes.map((p,i)=>({p,i})).filter(x=>!blocked.includes(x.i));
 const colors=["#FFD54F","#4FC3F7","#F48FB1","#66BB6A","#26A69A",
 "#80CBC4","#FFCA28","#FFA726","#FF7043","#8D6E63","#D32F2F",
 "#5D4037","#42A5F5","#AB47BC","#9E9E9E","#FBC02D"];
@@ -78,13 +116,13 @@ const center=150,radius=150;
 const slice=2*Math.PI/prizes.length;
 let angle=0,spinning=false;
 
-let turns=localStorage.getItem("turns")?+localStorage.turns:2;
-let nextTime=localStorage.getItem("nextTime")||0;
+let turns=localStorage.turns?+localStorage.turns:2;
+let nextTime=localStorage.nextTime||0;
 
 function draw(){
  ctx.clearRect(0,0,300,300);
  for(let i=0;i<prizes.length;i++){
-  const start=angle+i*slice;
+  let start=angle+i*slice;
   ctx.beginPath();
   ctx.moveTo(center,center);
   ctx.arc(center,center,radius,start,start+slice);
@@ -107,12 +145,10 @@ function updateUI(){
 }
 
 function countdown(){
- if(turns>0) return document.getElementById("timer").innerText="";
+ if(turns>0){document.getElementById("timer").innerText="";return;}
  let diff=nextTime-Date.now();
  if(diff<=0){
-  turns=2;
-  localStorage.turns=2;
-  document.getElementById("timer").innerText="";
+  turns=2;localStorage.turns=2;
   updateUI();return;
  }
  let h=Math.floor(diff/3600000);
@@ -122,12 +158,11 @@ function countdown(){
  `⏳ Còn ${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 }
 setInterval(countdown,1000);
-
 updateUI();
 
 document.getElementById("spinBtn").onclick=()=>{
  if(spinning||turns<=0)return;
- turns--; localStorage.turns=turns;
+ turns--;localStorage.turns=turns;
  if(turns==0){
   nextTime=Date.now()+12*60*60*1000;
   localStorage.nextTime=nextTime;
@@ -137,20 +172,16 @@ document.getElementById("spinBtn").onclick=()=>{
 
  const win=allowed[Math.floor(Math.random()*allowed.length)];
  const target=win.i;
- const stopAngle= (3*Math.PI/2) - (target*slice) - slice/2;
+ const stop=(3*Math.PI/2)-(target*slice)-slice/2;
  let speed=0.3;
 
- const anim=setInterval(()=>{
-  angle+=speed;
-  speed*=0.99;
+ const run=setInterval(()=>{
+  angle+=speed;speed*=0.99;
   draw();
   if(speed<0.002){
-   angle=stopAngle;
-   draw();
-   spinning=false;
-   clearInterval(anim);
-   document.getElementById("result").innerText=
-    "🎉 Kết quả: "+prizes[target];
+   angle=stop;draw();spinning=false;
+   clearInterval(run);
+   document.getElementById("result").innerText="🎉 Kết quả: "+prizes[target];
    document.getElementById("popup").style.display="flex";
   }
  },20);
