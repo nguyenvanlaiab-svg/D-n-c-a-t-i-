@@ -6,174 +6,199 @@
 <title>Vòng quay may mắn</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f2f2f2;
+body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    text-align:center;
+    background:#f4f4f4;
 }
-#wheel {
-  width: 300px;
-  height: 300px;
-  margin: 30px auto;
-  border-radius: 50%;
-  position: relative;
+h1{margin:15px 0}
+.bar{
+    background:#000;
+    color:#00ff66;
+    padding:10px;
+    font-weight:bold;
 }
-.pointer {
-  width: 0;
-  height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 30px solid red;
-  margin: auto;
+#wrapper{
+    position:relative;
+    width:320px;
+    height:320px;
+    margin:20px auto;
 }
-button {
-  padding: 12px 25px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  background: #ff5722;
-  color: #fff;
+canvas{width:100%;height:100%}
+.arrow{
+    position:absolute;
+    top:-12px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;
+    border-left:12px solid transparent;
+    border-right:12px solid transparent;
+    border-bottom:20px solid red;
 }
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  display: none;
-  align-items: center;
-  justify-content: center;
+button{
+    margin-top:20px;
+    background:#ff5722;
+    border:none;
+    color:#fff;
+    padding:15px 40px;
+    font-size:18px;
+    border-radius:8px;
 }
-.modal-content {
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  width: 80%;
-}
+button:disabled{background:#aaa}
+#countdown{color:red;margin-top:10px;font-weight:bold}
 </style>
 </head>
 
 <body>
 
-<h2>🎯 Vòng quay may mắn</h2>
-<p id="status">Còn 5 lượt</p>
+<h1>Vòng quay may mắn</h1>
+<div class="bar">🎟️ Lượt còn lại: <span id="turns">0</span></div>
 
-<div class="pointer"></div>
-
-<canvas id="wheel" width="300" height="300"></canvas>
-
-<button onclick="spin()">QUAY</button>
-
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <h3>Kết quả</h3>
-    <p id="result"></p>
-    <button onclick="closeModal()">OK</button>
-  </div>
+<div id="wrapper">
+    <div class="arrow"></div>
+    <canvas id="wheel" width="320" height="320"></canvas>
 </div>
 
+<button id="spinBtn">🎯 QUAY NGAY</button>
+<div id="countdown"></div>
+
 <script>
-const prizes = [
-  "Trượt",
-  "Chúc may mắn lần sau",
-  "2 giỏ quà tết",
-  "Mất lượt",
-  "Thêm lượt"
-];
-
-const colors = ["#607d8b","#9e9e9e","#c9a227","#e57373","#81c784"];
-
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
-const cx = canvas.width/2;
-const cy = canvas.height/2;
-const radius = 140;
-const slice = 2 * Math.PI / prizes.length;
+const spinBtn = document.getElementById("spinBtn");
+const turnsEl = document.getElementById("turns");
+const countdownEl = document.getElementById("countdown");
 
-let rotation = 0;
-let spinning = false;
+const MAX_TURNS = 2;
+const COOLDOWN = 12 * 60 * 60 * 1000;
 
-let data = JSON.parse(localStorage.getItem("spinData")) || {
-  turns: 5,
-  lock: 0
+const prizes = [
+ "Mất lượt",
+ "Chúc may mắn lần sau",
+ "+50.000đ",
+ "+100.000đ",
+ "+200.000đ",
+ "+300.000đ",
+ "+500.000đ",
+ "-70.000đ",
+ "-80.000đ",
+ "-90.000đ",
+ "-200.000đ",
+ "Thêm lượt",
+ "Điện thoại Samsung ❌",
+ "3 giỏ quà Tết ❌",
+ "Máy sấy tóc ❌",
+ "Bàn là ❌"
+];
+
+const blocked = [
+ "Điện thoại Samsung ❌",
+ "3 giỏ quà Tết ❌",
+ "Máy sấy tóc ❌",
+ "Bàn là ❌"
+];
+
+const colors=[
+"#95a5a6","#bdc3c7","#2ecc71","#27ae60",
+"#16a085","#f1c40f","#f39c12","#e67e22",
+"#d35400","#c0392b","#e74c3c","#9b59b6",
+"#3498db","#1abc9c","#7f8c8d","#f7dc6f"
+];
+
+let angle=0, spinning=false;
+
+function getData(){
+    return JSON.parse(localStorage.getItem("wheelData")) || {
+        turns: MAX_TURNS,
+        time: 0
+    };
+}
+
+function saveData(d){
+    localStorage.setItem("wheelData",JSON.stringify(d));
+}
+
+function updateTurns(){
+    const d = getData();
+    turnsEl.innerText = d.turns;
+    spinBtn.disabled = d.turns<=0;
+}
+
+function draw(){
+    ctx.clearRect(0,0,320,320);
+    const slice=2*Math.PI/prizes.length;
+    for(let i=0;i<prizes.length;i++){
+        ctx.beginPath();
+        ctx.fillStyle=colors[i%colors.length];
+        ctx.moveTo(160,160);
+        ctx.arc(160,160,150,angle+i*slice,angle+(i+1)*slice);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(160,160);
+        ctx.rotate(angle+i*slice+slice/2);
+        ctx.textAlign="right";
+        ctx.font="14px Arial";
+        ctx.fillStyle="#000";
+        ctx.fillText(prizes[i],140,5);
+        ctx.restore();
+    }
+}
+draw();
+
+function startCountdown(){
+    setInterval(()=>{
+        const d=getData();
+        if(d.turns>0) return;
+        const remain=COOLDOWN-(Date.now()-d.time);
+        if(remain<=0){
+            saveData({turns:MAX_TURNS,time:0});
+            countdownEl.innerText="";
+            updateTurns();
+            return;
+        }
+        const h=Math.floor(remain/3600000);
+        const m=Math.floor(remain%3600000/60000);
+        const s=Math.floor(remain%60000/1000);
+        countdownEl.innerText=`⏳ Chơi lại sau ${h}h ${m}m ${s}s`;
+    },1000);
+}
+
+spinBtn.onclick=()=>{
+    if(spinning) return;
+    let d=getData();
+    if(d.turns<=0) return;
+
+    spinning=true;
+    d.turns--;
+    if(d.turns<=0) d.time=Date.now();
+    saveData(d);
+    updateTurns();
+
+    let target;
+    do{
+        target=Math.floor(Math.random()*prizes.length);
+    }while(blocked.includes(prizes[target]));
+
+    const slice=360/prizes.length;
+    const spinDeg=360*5+(360-(target*slice+slice/2));
+
+    let cur=0;
+    const timer=setInterval(()=>{
+        cur+=10;
+        angle+=10*Math.PI/180;
+        draw();
+        if(cur>=spinDeg){
+            clearInterval(timer);
+            spinning=false;
+            alert("🎉 Kết quả: "+prizes[target]);
+        }
+    },20);
 };
 
-function drawWheel() {
-  ctx.clearRect(0,0,300,300);
-  prizes.forEach((text,i)=>{
-    const start = i * slice;
-    const end = start + slice;
-
-    ctx.beginPath();
-    ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,radius,start,end);
-    ctx.fillStyle = colors[i];
-    ctx.fill();
-
-    // TEXT – KHÔNG LỆCH
-    ctx.save();
-    ctx.translate(cx,cy);
-    ctx.rotate(start + slice/2);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#000";
-    ctx.font = "14px Arial";
-    ctx.fillText(text, radius - 55, 0);
-    ctx.restore();
-  });
-}
-drawWheel();
-
-function spin() {
-  if (spinning) return;
-
-  const now = Date.now();
-  if (data.lock > now) {
-    alert("Hết lượt – quay lại sau 12h");
-    return;
-  }
-
-  if (data.turns <= 0) {
-    data.lock = now + 12*60*60*1000;
-    localStorage.setItem("spinData", JSON.stringify(data));
-    alert("Hết lượt – khóa 12h");
-    return;
-  }
-
-  data.turns--;
-  document.getElementById("status").innerText = "Còn " + data.turns + " lượt";
-  localStorage.setItem("spinData", JSON.stringify(data));
-
-  spinning = true;
-  const rand = Math.random() * 360 + 360*5;
-
-  let start = null;
-  function animate(t){
-    if(!start) start = t;
-    const p = Math.min((t-start)/3000,1);
-    const ease = 1 - Math.pow(1-p,3);
-    rotation = rand * ease;
-    ctx.save();
-    ctx.translate(cx,cy);
-    ctx.rotate(rotation*Math.PI/180);
-    ctx.translate(-cx,-cy);
-    drawWheel();
-    ctx.restore();
-    if(p<1) requestAnimationFrame(animate);
-    else finish();
-  }
-  requestAnimationFrame(animate);
-}
-
-function finish(){
-  spinning = false;
-  const deg = (360 - rotation%360 + 270) % 360;
-  const index = Math.floor(deg / (360/prizes.length));
-  document.getElementById("result").innerText = prizes[index];
-  document.getElementById("modal").style.display="flex";
-}
-
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-}
+updateTurns();
+startCountdown();
 </script>
 
 </body>
