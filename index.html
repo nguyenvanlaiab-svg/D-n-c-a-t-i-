@@ -302,6 +302,16 @@ startCountdown();
 
     return prizes[index];
     }
+    let liveCount = 61234;
+
+setInterval(()=>{
+    const change = Math.floor(Math.random()*20) - 10; // +-10
+    liveCount += change;
+    if(liveCount < 60000) liveCount = 60000;
+
+    document.getElementById("liveText").innerText =
+        `LIVE | ${liveCount.toLocaleString()}+ người đang chơi`;
+}, 2000);
 </script>
 
 </body>
