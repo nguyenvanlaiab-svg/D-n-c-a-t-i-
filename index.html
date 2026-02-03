@@ -2,155 +2,162 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Vòng Quay May Mắn</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vòng quay may mắn</title>
 
 <style>
 body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  font-family:Arial;
-  background:#f5f5f5;
+    font-family: Arial, sans-serif;
+    margin:0;
+    text-align:center;
+    background:#fff;
 }
 
-h2{
-  color:#ff5722;
-  margin-bottom:10px;
+h1{
+    margin:15px 0;
+    font-size:26px;
 }
 
-#wheel-box{
-  position:relative;
-  width:300px;
-  height:300px;
+.top-bar{
+    background:#111;
+    color:#00ff66;
+    padding:10px;
+    font-weight:bold;
 }
 
-#wheel{
-  width:100%;
-  height:100%;
-  border-radius:50%;
-  border:8px solid #ff5722;
-  transition:transform 4s cubic-bezier(.17,.67,.22,1);
-  background:conic-gradient(
-    #ffe0b2 0deg 60deg,
-    #ffcc80 60deg 120deg,
-    #ffe0b2 120deg 180deg,
-    #ffcc80 180deg 240deg,
-    #ffe0b2 240deg 300deg,
-    #ffcc80 300deg 360deg
-  );
+.wheel-box{
+    position:relative;
+    width:300px;
+    height:300px;
+    margin:20px auto;
 }
 
-.text{
-  position:absolute;
-  width:100%;
-  height:100%;
-  top:0;
-  left:0;
-  pointer-events:none;
+.arrow{
+    position:absolute;
+    top:-15px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;
+    height:0;
+    border-left:15px solid transparent;
+    border-right:15px solid transparent;
+    border-bottom:25px solid red;
+    z-index:10;
 }
 
-.text div{
-  position:absolute;
-  width:50%;
-  top:50%;
-  left:50%;
-  transform-origin:0% 0%;
-  font-size:14px;
-  font-weight:bold;
-  color:#d84315;
-}
-
-.text span{
-  display:block;
-  transform:rotate(-90deg);
-  margin-left:15px;
-}
-
-#pointer{
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  width:0;
-  height:0;
-  border-left:14px solid transparent;
-  border-right:14px solid transparent;
-  border-bottom:22px solid red;
+canvas{
+    width:100%;
+    height:100%;
+    border-radius:50%;
 }
 
 button{
-  margin-top:20px;
-  padding:12px 30px;
-  background:#ff5722;
-  color:#fff;
-  border:none;
-  border-radius:25px;
-  font-size:16px;
+    margin-top:15px;
+    padding:15px 35px;
+    font-size:18px;
+    background:#ff5722;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
 }
-
-#result{
-  margin-top:12px;
-  font-size:18px;
-  color:#d84315;
+button:disabled{
+    background:#aaa;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🎉 VÒNG QUAY MAY MẮN 🎉</h2>
+<h1>Vòng quay may mắn</h1>
 
-<div id="wheel-box">
-  <div id="pointer"></div>
-  <div id="wheel"></div>
+<div class="top-bar">🎫 Lượt còn lại: <span id="turns">2</span></div>
 
-  <div class="text">
-    <div style="transform:rotate(0deg)"><span>Trượt</span></div>
-    <div style="transform:rotate(60deg)"><span>Jackpot 5.000.000₫</span></div>
-    <div style="transform:rotate(120deg)"><span>3 Giỏ quà Tết</span></div>
-    <div style="transform:rotate(180deg)"><span>Thêm lượt</span></div>
-    <div style="transform:rotate(240deg)"><span>Mất lượt</span></div>
-    <div style="transform:rotate(300deg)"><span>Chúc may mắn lần sau</span></div>
-  </div>
+<div class="wheel-box">
+    <div class="arrow"></div>
+    <canvas id="wheel" width="300" height="300"></canvas>
 </div>
 
-<button onclick="spin()">QUAY NGAY</button>
-<div id="result"></div>
+<button id="spinBtn">🎯 QUAY NGAY</button>
 
 <script>
 const prizes = [
-  "Trượt",
-  "Jackpot 5.000.000₫",
-  "3 Giỏ quà Tết",
-  "Thêm lượt",
+  "Điện thoại Samsung",
+  "Máy sấy tóc",
+  "Bàn là 🔥",
+  "+50.000đ",
+  "+100.000đ",
+  "+200.000đ",
+  "+300.000đ",
+  "+500.000đ",
+  "-70.000đ",
+  "-80.000đ",
+  "-90.000đ",
+  "-200.000đ",
   "Mất lượt",
-  "Chúc may mắn lần sau"
+  "Thêm lượt",
+  "Chúc may mắn",
+  "3 giỏ quà Tết"
 ];
 
-// ép thua 100%
-const loseIndex = [0,5];
+const colors = [
+ "#FFD54F","#4FC3F7","#F48FB1","#66BB6A",
+ "#26A69A","#80CBC4","#FFCA28","#FFA726",
+ "#FF7043","#8D6E63","#D32F2F","#5D4037",
+ "#42A5F5","#AB47BC","#9E9E9E","#FBC02D"
+];
 
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const center = canvas.width/2;
+const radius = center;
+const slice = 2 * Math.PI / prizes.length;
+let angle = 0;
+let turns = 2;
 let spinning = false;
 
-function spin(){
-  if(spinning) return;
-  spinning = true;
-
-  let index = loseIndex[Math.floor(Math.random()*loseIndex.length)];
-  let deg = 360 * 5 - index * 60;
-
-  document.getElementById("wheel").style.transform =
-    `rotate(${deg}deg)`;
-
-  setTimeout(()=>{
-    document.getElementById("result").innerText =
-      "👉 " + prizes[index];
-    spinning = false;
-  },4000);
+function drawWheel(){
+  for(let i=0;i<prizes.length;i++){
+    const start = angle + i*slice;
+    ctx.beginPath();
+    ctx.moveTo(center,center);
+    ctx.arc(center,center,radius,start,start+slice);
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    
+    ctx.save();
+    ctx.translate(center,center);
+    ctx.rotate(start + slice/2);
+    ctx.textAlign="right";
+    ctx.fillStyle="#000";
+    ctx.font="bold 12px Arial";
+    ctx.fillText(prizes[i], radius-10,5);
+    ctx.restore();
+  }
 }
+
+drawWheel();
+
+document.getElementById("spinBtn").onclick = ()=>{
+ if(spinning || turns<=0) return;
+ turns--;
+ document.getElementById("turns").innerText=turns;
+ spinning=true;
+
+ let spinAngle = Math.random()*2000 + 3000;
+ let current = 0;
+
+ const timer = setInterval(()=>{
+   angle += Math.PI/30;
+   ctx.clearRect(0,0,canvas.width,canvas.height);
+   drawWheel();
+   current += Math.PI/30;
+   if(current >= spinAngle*Math.PI/180){
+     clearInterval(timer);
+     spinning=false;
+   }
+ },20);
+};
 </script>
 
 </body>
