@@ -2,28 +2,66 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Vòng quay may mắn</title>
+<title>Vòng Quay May Mắn</title>
+
 <style>
 body{
-  font-family: Arial, sans-serif;
-  background:#111;
-  color:#fff;
-  text-align:center;
+  margin:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:#f5f5f5;
+  font-family:Arial;
 }
-#wheel-box{
+
+h2{color:#ff5722;margin-bottom:10px}
+
+#wheel-container{
   position:relative;
-  width:300px;
-  height:300px;
-  margin:40px auto;
+  width:320px;
+  height:320px;
 }
+
 #wheel{
   width:100%;
   height:100%;
   border-radius:50%;
-  border:8px solid #fff;
-  transition:transform 4s cubic-bezier(.17,.67,.14,1);
+  border:8px solid #ff5722;
+  transition:transform 4s cubic-bezier(.17,.67,.22,1);
+  background:conic-gradient(
+    #ffcc80 0deg 60deg,
+    #ffe0b2 60deg 120deg,
+    #ffcc80 120deg 180deg,
+    #ffe0b2 180deg 240deg,
+    #ffcc80 240deg 300deg,
+    #ffe0b2 300deg 360deg
+  );
 }
-.arrow{
+
+.segment{
+  position:absolute;
+  width:50%;
+  height:50%;
+  top:50%;
+  left:50%;
+  transform-origin:0% 0%;
+}
+
+.segment span{
+  position:absolute;
+  left:15px;
+  top:30px;
+  width:130px;
+  font-size:14px;
+  color:#d84315;
+  font-weight:bold;
+  text-align:left;
+  transform:rotate(90deg);
+}
+
+#pointer{
   position:absolute;
   top:-20px;
   left:50%;
@@ -32,77 +70,79 @@ body{
   height:0;
   border-left:15px solid transparent;
   border-right:15px solid transparent;
-  border-bottom:30px solid red;
+  border-bottom:25px solid red;
 }
+
 button{
-  padding:12px 30px;
-  font-size:18px;
-  cursor:pointer;
-}
-#result{
   margin-top:20px;
-  font-size:22px;
-  font-weight:bold;
+  padding:12px 30px;
+  background:#ff5722;
+  color:white;
+  border:none;
+  border-radius:30px;
+  font-size:16px;
+}
+
+#result{
+  margin-top:15px;
+  font-size:18px;
+  color:#d84315;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🎯 VÒNG QUAY MAY MẮN</h2>
+<h2>🎉 VÒNG QUAY MAY MẮN 🎉</h2>
 
-<div id="wheel-box">
-  <div class="arrow"></div>
-  <canvas id="wheel" width="300" height="300"></canvas>
+<div id="wheel-container">
+  <div id="pointer"></div>
+  <div id="wheel">
+    <div class="segment" style="transform:rotate(0deg)">
+      <span>Jackpot 5.000.000₫</span>
+    </div>
+    <div class="segment" style="transform:rotate(60deg)">
+      <span>3 Giỏ quà Tết</span>
+    </div>
+    <div class="segment" style="transform:rotate(120deg)">
+      <span>Thêm lượt</span>
+    </div>
+    <div class="segment" style="transform:rotate(180deg)">
+      <span>Mất lượt</span>
+    </div>
+    <div class="segment" style="transform:rotate(240deg)">
+      <span>Chúc may mắn lần sau</span>
+    </div>
+    <div class="segment" style="transform:rotate(300deg)">
+      <span>Trượt</span>
+    </div>
+  </div>
 </div>
 
-<button onclick="spin()">QUAY</button>
+<button onclick="spin()">QUAY NGAY</button>
 <div id="result"></div>
 
 <script>
-const prizes = [
-  "🎁 Trúng thưởng",
-  "❌ Trượt",
-  "🍀 Chúc may mắn",
-  "⛔ Mất lượt"
-];
+let canSpin = true;
 
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-const slices = prizes.length;
-const arc = 2 * Math.PI / slices;
-let angle = 0;
-
-function drawWheel(){
-  for(let i=0;i<slices;i++){
-    ctx.beginPath();
-    ctx.fillStyle = i%2 ? "#ff9800" : "#4caf50";
-    ctx.moveTo(150,150);
-    ctx.arc(150,150,150,arc*i,arc*(i+1));
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(150,150);
-    ctx.rotate(arc*i + arc/2);
-    ctx.fillStyle="#fff";
-    ctx.font="16px Arial";
-    ctx.textAlign="right";
-    ctx.fillText(prizes[i],130,5);
-    ctx.restore();
-  }
-}
-drawWheel();
+// CHỈ SỐ Ô TRÚNG (0% TRÚNG)
+const loseIndex = [4,5]; // chỉ rơi vào "Chúc may mắn" & "Trượt"
 
 function spin(){
-  const randomDeg = Math.floor(Math.random()*360) + 1440;
-  angle += randomDeg;
-  canvas.style.transform = `rotate(${angle}deg)`;
+  if(!canSpin) return;
+  canSpin = false;
+
+  let randomLose = loseIndex[Math.floor(Math.random()*loseIndex.length)];
+  let anglePer = 360 / 6;
+  let rotate = 360*5 + (randomLose * anglePer) + anglePer/2;
+
+  document.getElementById("wheel").style.transform =
+    `rotate(${rotate}deg)`;
 
   setTimeout(()=>{
-    const actual = angle % 360;
-    const index = Math.floor((360 - actual) / (360/slices)) % slices;
-    document.getElementById("result").innerText =
-      "👉 Kết quả: " + prizes[index];
+    let text = document.querySelectorAll(".segment span")[randomLose].innerText;
+    document.getElementById("result").innerText = "👉 " + text;
+    canSpin = true;
   },4000);
 }
 </script>
