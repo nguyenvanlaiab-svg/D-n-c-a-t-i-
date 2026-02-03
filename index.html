@@ -31,28 +31,18 @@ button:disabled{background:#aaa}
 .popup div{
  background:#fff;padding:25px;border-radius:10px;width:80%}
 
-/* LIVE button */
+/* LIVE */
 .live-btn{
- position:fixed;
- top:80px;
- right:15px;
- background:#ff0000;
- color:#fff;
- padding:8px 14px;
- border-radius:20px;
- font-size:14px;
- font-weight:bold;
- z-index:999;
- display:flex;
- align-items:center;
- gap:6px;
- animation:blink 1s infinite;
- box-shadow:0 0 10px rgba(255,0,0,.7);
-}
+ position:fixed;top:80px;right:15px;
+ background:#ff0000;color:#fff;
+ padding:8px 14px;border-radius:20px;
+ font-size:14px;font-weight:bold;
+ display:flex;align-items:center;gap:6px;
+ animation:blink 1s infinite;z-index:999;
+ box-shadow:0 0 10px rgba(255,0,0,.7)}
 .live-dot{
- width:8px;height:8px;background:#00ff3c;border-radius:50%;
- animation:pulse 1s infinite;
-}
+ width:8px;height:8px;background:#00ff3c;
+ border-radius:50%;animation:pulse 1s infinite}
 @keyframes blink{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.6)}100%{transform:scale(1)}}
 </style>
@@ -74,8 +64,8 @@ button:disabled{background:#aaa}
 </div>
 
 <div class="wheel-box">
-<div class="arrow"></div>
-<canvas id="wheel" width="300" height="300"></canvas>
+ <div class="arrow"></div>
+ <canvas id="wheel" width="300" height="300"></canvas>
 </div>
 
 <button id="spinBtn">🎯 QUAY NGAY</button>
@@ -88,24 +78,33 @@ button:disabled{background:#aaa}
 </div>
 
 <script>
-/* ====== LIVE COUNT ====== */
+/* ===== LIVE COUNT ===== */
 let live=61234;
 setInterval(()=>{
  let c=Math.floor(Math.random()*50)+1;
- live += Math.random()>0.5?c:-c;
+ live+=Math.random()>0.5?c:-c;
  if(live<60000) live=60000;
  document.getElementById("liveCount").innerText=live.toLocaleString()+"+";
 },2000);
 
-/* ====== WHEEL ====== */
+/* ===== PRIZES ===== */
 const prizes=[
- "Điện thoại Samsung","Máy sấy tóc","Bàn là 🔥",
- "+50.000đ","+100.000đ","+200.000đ","+300.000đ","+500.000đ",
- "-70.000đ","-80.000đ","-90.000đ","-200.000đ",
- "Mất lượt","Thêm lượt","Chúc may mắn","3 giỏ quà Tết"
+ "Điện thoại Samsung", // 0 ❌ vật lý
+ "Máy sấy tóc",        // 1 ❌ vật lý
+ "Bàn là 🔥",          // 2 ❌ vật lý
+ "+50.000đ", "+100.000đ", "+200.000đ", "+300.000đ", "+500.000đ",
+ "-70.000đ", "-80.000đ", "-90.000đ", "-200.000đ",
+ "Mất lượt", "Thêm lượt", "Chúc may mắn",
+ "3 giỏ quà Tết"       // 15 ❌ vật lý
 ];
-const blocked=[0,15];
-const allowed=prizes.map((p,i)=>({p,i})).filter(x=>!blocked.includes(x.i));
+
+/* ❌ CÁC Ô VẬT LÝ – KHÔNG BAO GIỜ TRÚNG */
+const blocked=[0,1,2,15];
+
+/* ✅ CHỈ CHỌN Ô ĐƯỢC PHÉP */
+const allowed=prizes.map((p,i)=>({p,i}))
+                     .filter(x=>!blocked.includes(x.i));
+
 const colors=["#FFD54F","#4FC3F7","#F48FB1","#66BB6A","#26A69A",
 "#80CBC4","#FFCA28","#FFA726","#FF7043","#8D6E63","#D32F2F",
 "#5D4037","#42A5F5","#AB47BC","#9E9E9E","#FBC02D"];
@@ -116,6 +115,7 @@ const center=150,radius=150;
 const slice=2*Math.PI/prizes.length;
 let angle=0,spinning=false;
 
+/* ===== TURNS + TIMER ===== */
 let turns=localStorage.turns?+localStorage.turns:2;
 let nextTime=localStorage.nextTime||0;
 
@@ -145,30 +145,28 @@ function updateUI(){
 }
 
 function countdown(){
- if(turns>0){document.getElementById("timer").innerText="";return;}
- let diff=nextTime-Date.now();
- if(diff<=0){
+ if(turns>0){timer.innerText="";return;}
+ let d=nextTime-Date.now();
+ if(d<=0){
   turns=2;localStorage.turns=2;
   updateUI();return;
  }
- let h=Math.floor(diff/3600000);
- let m=Math.floor(diff%3600000/60000);
- let s=Math.floor(diff%60000/1000);
- document.getElementById("timer").innerText=
- `⏳ Còn ${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+ let h=Math.floor(d/3600000);
+ let m=Math.floor(d%3600000/60000);
+ let s=Math.floor(d%60000/1000);
+ timer.innerText=`⏳ Còn ${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 }
 setInterval(countdown,1000);
 updateUI();
 
-document.getElementById("spinBtn").onclick=()=>{
+spinBtn.onclick=()=>{
  if(spinning||turns<=0)return;
  turns--;localStorage.turns=turns;
  if(turns==0){
   nextTime=Date.now()+12*60*60*1000;
   localStorage.nextTime=nextTime;
  }
- updateUI();
- spinning=true;
+ updateUI();spinning=true;
 
  const win=allowed[Math.floor(Math.random()*allowed.length)];
  const target=win.i;
@@ -176,20 +174,16 @@ document.getElementById("spinBtn").onclick=()=>{
  let speed=0.3;
 
  const run=setInterval(()=>{
-  angle+=speed;speed*=0.99;
-  draw();
+  angle+=speed;speed*=0.99;draw();
   if(speed<0.002){
-   angle=stop;draw();spinning=false;
-   clearInterval(run);
-   document.getElementById("result").innerText="🎉 Kết quả: "+prizes[target];
-   document.getElementById("popup").style.display="flex";
+   angle=stop;draw();spinning=false;clearInterval(run);
+   result.innerText="🎉 Kết quả: "+prizes[target];
+   popup.style.display="flex";
   }
  },20);
 };
 
-function closePopup(){
- document.getElementById("popup").style.display="none";
-}
+function closePopup(){popup.style.display="none";}
 </script>
 
 </body>
