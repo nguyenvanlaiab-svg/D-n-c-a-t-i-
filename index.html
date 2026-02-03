@@ -4,26 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vòng quay may mắn</title>
+
 <style>
-body{font-family:Arial;text-align:center;background:#f5f5f5}
-#wrapper{position:relative;width:300px;height:300px;margin:20px auto}
-canvas{background:#fff;border-radius:50%}
-#pointer{
- position:absolute;top:-12px;left:50%;transform:translateX(-50%);
- width:0;height:0;border-left:12px solid transparent;
- border-right:12px solid transparent;border-bottom:24px solid red;
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f2f2f2;
 }
-button{
- background:#ee4d2d;color:#fff;border:none;
- padding:12px 30px;border-radius:8px;font-size:16px
+#wheel {
+  width: 300px;
+  height: 300px;
+  margin: 30px auto;
+  border-radius: 50%;
+  position: relative;
 }
-#info{font-weight:bold;margin:10px}
-#overlay{
- position:fixed;inset:0;background:rgba(0,0,0,.5);
- display:none;justify-content:center;align-items:center
+.pointer {
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 30px solid red;
+  margin: auto;
 }
-#popup{
- background:#fff;padding:20px;border-radius:12px;width:80%;max-width:300px
+button {
+  padding: 12px 25px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #ff5722;
+  color: #fff;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  width: 80%;
 }
 </style>
 </head>
@@ -31,120 +54,125 @@ button{
 <body>
 
 <h2>🎯 Vòng quay may mắn</h2>
-<div id="info"></div>
+<p id="status">Còn 5 lượt</p>
 
-<div id="wrapper">
- <div id="pointer"></div>
- <canvas id="wheel" width="300" height="300"></canvas>
-</div>
+<div class="pointer"></div>
+
+<canvas id="wheel" width="300" height="300"></canvas>
 
 <button onclick="spin()">QUAY</button>
 
-<div id="overlay">
- <div id="popup">
-  <h3>Kết quả</h3>
-  <p id="result"></p>
-  <button onclick="closePopup()">OK</button>
- </div>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Kết quả</h3>
+    <p id="result"></p>
+    <button onclick="closeModal()">OK</button>
+  </div>
 </div>
 
 <script>
-const prizes=[
- "Chúc may mắn lần sau",
- "2 giỏ quà tết",
- "Trượt",
- "3 giỏ quà tết",
- "Trượt"
+const prizes = [
+  "Trượt",
+  "Chúc may mắn lần sau",
+  "2 giỏ quà tết",
+  "Mất lượt",
+  "Thêm lượt"
 ];
-const colors=["#ccc","#ffca28","#b0bec5","#ff7043","#b0bec5"];
 
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
-const center=150,radius=140;
-const slice=2*Math.PI/prizes.length;
+const colors = ["#607d8b","#9e9e9e","#c9a227","#e57373","#81c784"];
 
-let rotation=0,spinning=false;
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const cx = canvas.width/2;
+const cy = canvas.height/2;
+const radius = 140;
+const slice = 2 * Math.PI / prizes.length;
 
-// ==== GIỚI HẠN 2 LƯỢT / 12H ====
-const MAX=2, LOCK=12*60*60*1000;
-let data=JSON.parse(localStorage.getItem("spinData"))||{count:0,time:0};
+let rotation = 0;
+let spinning = false;
 
-function updateInfo(){
- if(data.count>=MAX){
-  let left=LOCK-(Date.now()-data.time);
-  if(left<=0){
-   data={count:0,time:0};
-   localStorage.setItem("spinData",JSON.stringify(data));
-  }else{
-   document.getElementById("info").innerText=
-    "⏳ Hết lượt – quay lại sau "+Math.ceil(left/3600000)+"h";
-   return;
+let data = JSON.parse(localStorage.getItem("spinData")) || {
+  turns: 5,
+  lock: 0
+};
+
+function drawWheel() {
+  ctx.clearRect(0,0,300,300);
+  prizes.forEach((text,i)=>{
+    const start = i * slice;
+    const end = start + slice;
+
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,radius,start,end);
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+
+    // TEXT – KHÔNG LỆCH
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(start + slice/2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#000";
+    ctx.font = "14px Arial";
+    ctx.fillText(text, radius - 55, 0);
+    ctx.restore();
+  });
+}
+drawWheel();
+
+function spin() {
+  if (spinning) return;
+
+  const now = Date.now();
+  if (data.lock > now) {
+    alert("Hết lượt – quay lại sau 12h");
+    return;
   }
- }
- document.getElementById("info").innerText=
-  "🎟️ Lượt còn lại: "+(MAX-data.count);
-}
-updateInfo();
 
-// VẼ VÒNG
-function draw(){
- ctx.clearRect(0,0,300,300);
- for(let i=0;i<prizes.length;i++){
-  ctx.beginPath();
-  ctx.moveTo(center,center);
-  ctx.arc(center,center,radius,i*slice,(i+1)*slice);
-  ctx.fillStyle=colors[i];
-  ctx.fill();
-  ctx.save();
-  ctx.translate(center,center);
-  ctx.rotate(i*slice+slice/2);
-  ctx.textAlign="right";
-  ctx.fillStyle="#000";
-  ctx.font="14px Arial";
-  ctx.fillText(prizes[i],radius-10,5);
-  ctx.restore();
- }
-}
-draw();
+  if (data.turns <= 0) {
+    data.lock = now + 12*60*60*1000;
+    localStorage.setItem("spinData", JSON.stringify(data));
+    alert("Hết lượt – khóa 12h");
+    return;
+  }
 
-function spin(){
- if(spinning) return;
- if(data.count>=MAX) return;
+  data.turns--;
+  document.getElementById("status").innerText = "Còn " + data.turns + " lượt";
+  localStorage.setItem("spinData", JSON.stringify(data));
 
- spinning=true;
- data.count++;
- if(data.count===MAX) data.time=Date.now();
- localStorage.setItem("spinData",JSON.stringify(data));
- updateInfo();
+  spinning = true;
+  const rand = Math.random() * 360 + 360*5;
 
- let target=rotation+Math.PI*8+Math.random()*2*Math.PI;
- let start=performance.now(),dur=3000;
-
- function anim(t){
-  let p=Math.min((t-start)/dur,1);
-  rotation+= (target-rotation)*0.08;
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.translate(center,center);
-  ctx.rotate(rotation);
-  ctx.translate(-center,-center);
-  draw();
-  if(p<1) requestAnimationFrame(anim);
-  else{spinning=false;showResult();}
- }
- requestAnimationFrame(anim);
+  let start = null;
+  function animate(t){
+    if(!start) start = t;
+    const p = Math.min((t-start)/3000,1);
+    const ease = 1 - Math.pow(1-p,3);
+    rotation = rand * ease;
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(rotation*Math.PI/180);
+    ctx.translate(-cx,-cy);
+    drawWheel();
+    ctx.restore();
+    if(p<1) requestAnimationFrame(animate);
+    else finish();
+  }
+  requestAnimationFrame(animate);
 }
 
-// ==== KẾT QUẢ THEO KIM 12H (CHUẨN) ====
-function showResult(){
- let angle=(rotation+Math.PI*1.5)%(2*Math.PI);
- if(angle<0) angle+=2*Math.PI;
- let index=Math.floor(angle/slice)%prizes.length;
- document.getElementById("result").innerText=prizes[index];
- document.getElementById("overlay").style.display="flex";
+function finish(){
+  spinning = false;
+  const deg = (360 - rotation%360 + 270) % 360;
+  const index = Math.floor(deg / (360/prizes.length));
+  document.getElementById("result").innerText = prizes[index];
+  document.getElementById("modal").style.display="flex";
 }
 
-function closePopup(){
- document.getElementById("overlay").style.display="none";
+function closeModal(){
+  document.getElementById("modal").style.display="none";
 }
 </script>
 
