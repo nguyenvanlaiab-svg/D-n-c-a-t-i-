@@ -1,158 +1,78 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vòng quay may mắn</title>
+<!-- POPUP SHOPEE -->
 <style>
-  body{
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background:#f5f5f5;
-    text-align:center;
-  }
-  h2{margin:10px 0}
-  .top{
-    background:#111;
-    color:#0f0;
-    padding:10px;
-    border-radius:10px;
-    margin:10px;
-    font-weight:bold;
-  }
-  canvas{margin-top:10px}
-  button{
-    margin-top:15px;
-    padding:12px 30px;
-    font-size:18px;
-    border:none;
-    border-radius:10px;
-    background:#ee4d2d;
-    color:#fff;
-    font-weight:bold;
-  }
-  button:disabled{
-    background:#999;
-  }
-  .result{
-    margin-top:10px;
-    font-size:18px;
-    font-weight:bold;
-  }
+/* overlay */
+#popupOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  animation: fadeIn .25s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* box */
+#popupBox{
+  width:88%;
+  max-width:320px;
+  background:#fff;
+  border-radius:16px;
+  text-align:center;
+  padding:18px 16px 16px;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+  animation: pop .25s ease;
+}
+@keyframes pop{from{transform:scale(.85)}to{transform:scale(1)}}
+
+#popupIcon{
+  font-size:42px;
+  margin-bottom:6px;
+}
+#popupTitle{
+  font-size:18px;
+  font-weight:700;
+  margin:6px 0;
+}
+#popupMsg{
+  font-size:15px;
+  color:#444;
+  margin:6px 0 14px;
+}
+
+/* button */
+#popupBtn{
+  width:100%;
+  border:none;
+  border-radius:12px;
+  padding:12px 0;
+  font-size:16px;
+  font-weight:700;
+  background:linear-gradient(180deg,#ff7337,#ee4d2d);
+  color:#fff;
+  cursor:pointer;
+}
+#popupBtn:active{transform:scale(.98)}
 </style>
-</head>
-<body>
 
-<h2>Vòng quay may mắn</h2>
-
-<div class="top">
-  🎫 Lượt còn lại: <span id="turns">5</span>
+<div id="popupOverlay">
+  <div id="popupBox">
+    <div id="popupIcon">🎉</div>
+    <div id="popupTitle">Chúc mừng!</div>
+    <div id="popupMsg">Bạn nhận được phần thưởng</div>
+    <button id="popupBtn" onclick="closePopup()">OK</button>
+  </div>
 </div>
 
-<canvas id="wheel" width="300" height="300"></canvas>
-
-<br>
-<button id="spinBtn" onclick="spin()">🎯 QUAY NGAY</button>
-<div class="result" id="result"></div>
-
 <script>
-const prizes = [
-  "🎁 3 giỏ quà Tết",
-  "🎁 3 giỏ quà Tết",
-  "+50.000đ",
-  "+100.000đ",
-  "+200.000đ",
-  "+300.000đ",
-  "+500.000đ",
-  "-70.000đ",
-  "-80.000đ",
-  "-90.000đ",
-  "-200.000đ",
-  "Mất lượt",
-  "Thêm lượt",
-  "Chúc may mắn"
-];
-
-const colors = [
-  "#ffcc80","#ffcc80",
-  "#66bb6a","#43a047","#26a69a","#ffd54f","#ffb300",
-  "#ffa726","#fb8c00","#ef5350","#d32f2f",
-  "#42a5f5","#ab47bc","#9e9e9e"
-];
-
-let turns = 5;
-let spinning = false;
-let angle = 0;
-
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-const center = canvas.width / 2;
-const radius = center - 5;
-const step = 2 * Math.PI / prizes.length;
-
-function drawWheel(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  prizes.forEach((text,i)=>{
-    const start = angle + i * step;
-    ctx.beginPath();
-    ctx.moveTo(center,center);
-    ctx.arc(center,center,radius,start,start+step);
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(center,center);
-    ctx.rotate(start + step/2);
-    ctx.textAlign="right";
-    ctx.fillStyle="#000";
-    ctx.font="14px Arial";
-    ctx.fillText(text, radius-10,5);
-    ctx.restore();
-  });
-
-  ctx.fillStyle="red";
-  ctx.beginPath();
-  ctx.moveTo(center-10,5);
-  ctx.lineTo(center+10,5);
-  ctx.lineTo(center,25);
-  ctx.fill();
+function showPopup(title, msg, icon="🎉"){
+  document.getElementById("popupIcon").innerText = icon;
+  document.getElementById("popupTitle").innerText = title;
+  document.getElementById("popupMsg").innerText = msg;
+  document.getElementById("popupOverlay").style.display = "flex";
 }
-
-drawWheel();
-
-function spin(){
-  if(spinning || turns <= 0) return;
-
-  turns--;
-  document.getElementById("turns").innerText = turns;
-  if(turns === 0){
-    document.getElementById("spinBtn").disabled = true;
-  }
-
-  spinning = true;
-  let speed = Math.random()*0.3 + 0.35;
-  let decel = 0.995;
-
-  function animate(){
-    speed *= decel;
-    angle += speed;
-    drawWheel();
-
-    if(speed < 0.002){
-      spinning = false;
-      const index = Math.floor(
-        prizes.length - (angle % (2*Math.PI)) / step
-      ) % prizes.length;
-
-      document.getElementById("result").innerHTML =
-        "🎉 Kết quả: " + prizes[index];
-      return;
-    }
-    requestAnimationFrame(animate);
-  }
-  animate();
+function closePopup(){
+  document.getElementById("popupOverlay").style.display = "none";
 }
 </script>
-
-</body>
-</html>
