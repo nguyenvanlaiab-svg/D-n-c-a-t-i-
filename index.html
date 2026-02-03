@@ -3,177 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <title>Vòng quay may mắn</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{
- font-family:Arial,Helvetica,sans-serif;
- background:#f5f5f5;
- text-align:center;
- margin:0;
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f5f5f5;
 }
-h2{margin:20px 0}
-#turnBox{
- background:#000;
- color:#00ff66;
- margin:10px auto;
- padding:12px;
- width:90%;
- max-width:360px;
- border-radius:30px;
- font-weight:bold;
+
+#wheel-container {
+  position: relative;
+  width: 300px;
+  margin: 40px auto;
 }
-#wheelBox{
- position:relative;
- width:300px;
- height:300px;
- margin:20px auto;
+
+#pointer {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 25px solid red;
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
 }
-canvas{border-radius:50%}
-#pointer{
- position:absolute;
- top:-5px;
- left:50%;
- transform:translateX(-50%);
- width:0;height:0;
- border-left:12px solid transparent;
- border-right:12px solid transparent;
- border-bottom:22px solid red;
- z-index:10;
+
+canvas {
+  border-radius: 50%;
+  background: #fff;
 }
-button{
- background:#ee4d2d;
- color:#fff;
- border:none;
- border-radius:30px;
- padding:14px 40px;
- font-size:18px;
- cursor:pointer;
+
+button {
+  margin-top: 20px;
+  padding: 10px 25px;
+  font-size: 16px;
+  cursor: pointer;
 }
-#popup{
- display:none;
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.6);
- justify-content:center;
- align-items:center;
-}
-#popup div{
- background:#fff;
- padding:25px;
- border-radius:12px;
- width:80%;
- max-width:320px;
+
+#turns {
+  margin-top: 10px;
+  font-weight: bold;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Vòng quay may mắn</h2>
-<div id="turnBox">🎟️ Lượt còn lại: <span id="turns">5</span></div>
+<h2>🎯 Vòng Quay May Mắn</h2>
 
-<div id="wheelBox">
- <div id="pointer"></div>
- <canvas id="wheel" width="300" height="300"></canvas>
+<div id="wheel-container">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="300" height="300"></canvas>
 </div>
 
-<button onclick="spin()">🎯 QUAY NGAY</button>
-
-<div id="popup">
- <div>
-  <h3>Kết quả</h3>
-  <p id="popupText"></p>
-  <button onclick="closePopup()">OK</button>
- </div>
-</div>
+<button onclick="spin()">QUAY</button>
+<div id="turns"></div>
 
 <script>
-const prizes=[
- "Mất lượt",
- "Thêm lượt",
- "Chúc may mắn",
- "3 giỏ quà Tết 🎁",
- "+50.000đ",
- "+100.000đ",
- "Máy sấy tóc 💨",
- "Điện thoại Samsung 📱",
- "Bàn là 🔥"
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const prizes = [
+  "Chúc may mắn lần sau",
+  "🎁 2 giỏ quà Tết",
+  "❌ Trượt",
+  "🎁🎁 3 giỏ quà Tết",
+  "❌ Trượt"
 ];
 
-let turns=5;
-let spinning=false;
-let rotation=0;
+const colors = ["#ffcc00", "#ff6666", "#cccccc", "#66cc66", "#cccccc"];
+const slices = prizes.length;
+const sliceAngle = 2 * Math.PI / slices;
 
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
-const size=prizes.length;
-const slice=2*Math.PI/size;
-const radius=150;
+let rotation = 0;
+let spinning = false;
 
-function draw(){
- ctx.clearRect(0,0,300,300);
- for(let i=0;i<size;i++){
-  ctx.beginPath();
-  ctx.moveTo(150,150);
-  ctx.arc(150,150,150,i*slice,(i+1)*slice);
-  ctx.fillStyle=i%2?"#ffe0b2":"#ffcc80";
-  ctx.fill();
-  ctx.save();
-  ctx.translate(150,150);
-  ctx.rotate(i*slice+slice/2);
-  ctx.textAlign="right";
-  ctx.fillStyle="#000";
-  ctx.font="14px Arial";
-  ctx.fillText(prizes[i],140,5);
-  ctx.restore();
- }
-}
-draw();
+// ===== GIỚI HẠN 2 LƯỢT =====
+const MAX_TURNS = 2;
+let turns = localStorage.getItem("turnsUsed")
+  ? parseInt(localStorage.getItem("turnsUsed"))
+  : 0;
 
-function spin(){
- if(spinning||turns<=0) return;
- spinning=true;
- turns--;
- document.getElementById("turns").innerText=turns;
+updateTurns();
 
- let speed=0.4;
- function animate(){
-  rotation+=speed;
-  speed*=0.985;
+// VẼ VÒNG QUAY
+function drawWheel() {
+  ctx.clearRect(0, 0, 300, 300);
+  for (let i = 0; i < slices; i++) {
+    ctx.beginPath();
+    ctx.fillStyle = colors[i];
+    ctx.moveTo(150, 150);
+    ctx.arc(
+      150,
+      150,
+      150,
+      i * sliceAngle + rotation,
+      (i + 1) * sliceAngle + rotation
+    );
+    ctx.fill();
 
-  ctx.save();
-  ctx.translate(150,150);
-  ctx.rotate(rotation);
-  ctx.translate(-150,-150);
-  draw();
-  ctx.restore();
-
-  if(speed<0.002){
-   spinning=false;
-
-   // === TÍNH Ô TRÚNG THEO KIM ===
-   let deg=(rotation*180/Math.PI)%360;
-   if(deg<0) deg+=360;
-   let pointerDeg=(360-deg+90)%360;
-   let index=Math.floor(pointerDeg/(360/size));
-
-   let result=prizes[index];
-   document.getElementById("popupText").innerText=result;
-   document.getElementById("popup").style.display="flex";
-
-   if(result==="Thêm lượt"){
-    turns++;
-    document.getElementById("turns").innerText=turns;
-   }
-   return;
+    ctx.save();
+    ctx.translate(150, 150);
+    ctx.rotate(i * sliceAngle + sliceAngle / 2 + rotation);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#000";
+    ctx.font = "14px Arial";
+    ctx.fillText(prizes[i], 140, 5);
+    ctx.restore();
   }
-  requestAnimationFrame(animate);
- }
- animate();
 }
 
-function closePopup(){
- document.getElementById("popup").style.display="none";
+drawWheel();
+
+// QUAY
+function spin() {
+  if (spinning) return;
+
+  if (turns >= MAX_TURNS) {
+    alert("❌ Bạn đã hết lượt quay!");
+    return;
+  }
+
+  turns++;
+  localStorage.setItem("turnsUsed", turns);
+  updateTurns();
+
+  spinning = true;
+  let spinAngle = Math.random() * 360 + 720;
+  let start = rotation;
+  let end = rotation + spinAngle * Math.PI / 180;
+  let duration = 3000;
+  let startTime = null;
+
+  function animate(time) {
+    if (!startTime) startTime = time;
+    let progress = (time - startTime) / duration;
+
+    if (progress < 1) {
+      rotation = start + (end - start) * easeOut(progress);
+      drawWheel();
+      requestAnimationFrame(animate);
+    } else {
+      rotation = end;
+      drawWheel();
+      spinning = false;
+      showResult();
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function easeOut(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// KẾT QUẢ THEO KIM
+function showResult() {
+  let angle = (-rotation + Math.PI / 2) % (2 * Math.PI);
+  if (angle < 0) angle += 2 * Math.PI;
+  let index = Math.floor(angle / sliceAngle);
+  alert("🎉 Kết quả: " + prizes[index]);
+}
+
+function updateTurns() {
+  document.getElementById("turns").innerText =
+    "Lượt quay còn lại: " + (MAX_TURNS - turns);
 }
 </script>
 
