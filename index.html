@@ -10,18 +10,21 @@ body{
   height:100vh;
   display:flex;
   flex-direction:column;
-  justify-content:center;
   align-items:center;
-  background:#f5f5f5;
+  justify-content:center;
   font-family:Arial;
+  background:#f5f5f5;
 }
 
-h2{color:#ff5722;margin-bottom:10px}
+h2{
+  color:#ff5722;
+  margin-bottom:10px;
+}
 
-#wheel-container{
+#wheel-box{
   position:relative;
-  width:320px;
-  height:320px;
+  width:300px;
+  height:300px;
 }
 
 #wheel{
@@ -31,60 +34,65 @@ h2{color:#ff5722;margin-bottom:10px}
   border:8px solid #ff5722;
   transition:transform 4s cubic-bezier(.17,.67,.22,1);
   background:conic-gradient(
-    #ffcc80 0deg 60deg,
-    #ffe0b2 60deg 120deg,
-    #ffcc80 120deg 180deg,
-    #ffe0b2 180deg 240deg,
-    #ffcc80 240deg 300deg,
-    #ffe0b2 300deg 360deg
+    #ffe0b2 0deg 60deg,
+    #ffcc80 60deg 120deg,
+    #ffe0b2 120deg 180deg,
+    #ffcc80 180deg 240deg,
+    #ffe0b2 240deg 300deg,
+    #ffcc80 300deg 360deg
   );
 }
 
-.segment{
+.text{
+  position:absolute;
+  width:100%;
+  height:100%;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+
+.text div{
   position:absolute;
   width:50%;
-  height:50%;
   top:50%;
   left:50%;
   transform-origin:0% 0%;
+  font-size:14px;
+  font-weight:bold;
+  color:#d84315;
 }
 
-.segment span{
-  position:absolute;
-  left:15px;
-  top:30px;
-  width:130px;
-  font-size:14px;
-  color:#d84315;
-  font-weight:bold;
-  text-align:left;
-  transform:rotate(90deg);
+.text span{
+  display:block;
+  transform:rotate(-90deg);
+  margin-left:15px;
 }
 
 #pointer{
   position:absolute;
-  top:-20px;
+  top:-18px;
   left:50%;
   transform:translateX(-50%);
   width:0;
   height:0;
-  border-left:15px solid transparent;
-  border-right:15px solid transparent;
-  border-bottom:25px solid red;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:22px solid red;
 }
 
 button{
   margin-top:20px;
   padding:12px 30px;
   background:#ff5722;
-  color:white;
+  color:#fff;
   border:none;
-  border-radius:30px;
+  border-radius:25px;
   font-size:16px;
 }
 
 #result{
-  margin-top:15px;
+  margin-top:12px;
   font-size:18px;
   color:#d84315;
 }
@@ -95,27 +103,17 @@ button{
 
 <h2>🎉 VÒNG QUAY MAY MẮN 🎉</h2>
 
-<div id="wheel-container">
+<div id="wheel-box">
   <div id="pointer"></div>
-  <div id="wheel">
-    <div class="segment" style="transform:rotate(0deg)">
-      <span>Jackpot 5.000.000₫</span>
-    </div>
-    <div class="segment" style="transform:rotate(60deg)">
-      <span>3 Giỏ quà Tết</span>
-    </div>
-    <div class="segment" style="transform:rotate(120deg)">
-      <span>Thêm lượt</span>
-    </div>
-    <div class="segment" style="transform:rotate(180deg)">
-      <span>Mất lượt</span>
-    </div>
-    <div class="segment" style="transform:rotate(240deg)">
-      <span>Chúc may mắn lần sau</span>
-    </div>
-    <div class="segment" style="transform:rotate(300deg)">
-      <span>Trượt</span>
-    </div>
+  <div id="wheel"></div>
+
+  <div class="text">
+    <div style="transform:rotate(0deg)"><span>Trượt</span></div>
+    <div style="transform:rotate(60deg)"><span>Jackpot 5.000.000₫</span></div>
+    <div style="transform:rotate(120deg)"><span>3 Giỏ quà Tết</span></div>
+    <div style="transform:rotate(180deg)"><span>Thêm lượt</span></div>
+    <div style="transform:rotate(240deg)"><span>Mất lượt</span></div>
+    <div style="transform:rotate(300deg)"><span>Chúc may mắn lần sau</span></div>
   </div>
 </div>
 
@@ -123,26 +121,34 @@ button{
 <div id="result"></div>
 
 <script>
-let canSpin = true;
+const prizes = [
+  "Trượt",
+  "Jackpot 5.000.000₫",
+  "3 Giỏ quà Tết",
+  "Thêm lượt",
+  "Mất lượt",
+  "Chúc may mắn lần sau"
+];
 
-// CHỈ SỐ Ô TRÚNG (0% TRÚNG)
-const loseIndex = [4,5]; // chỉ rơi vào "Chúc may mắn" & "Trượt"
+// ép thua 100%
+const loseIndex = [0,5];
+
+let spinning = false;
 
 function spin(){
-  if(!canSpin) return;
-  canSpin = false;
+  if(spinning) return;
+  spinning = true;
 
-  let randomLose = loseIndex[Math.floor(Math.random()*loseIndex.length)];
-  let anglePer = 360 / 6;
-  let rotate = 360*5 + (randomLose * anglePer) + anglePer/2;
+  let index = loseIndex[Math.floor(Math.random()*loseIndex.length)];
+  let deg = 360 * 5 - index * 60;
 
   document.getElementById("wheel").style.transform =
-    `rotate(${rotate}deg)`;
+    `rotate(${deg}deg)`;
 
   setTimeout(()=>{
-    let text = document.querySelectorAll(".segment span")[randomLose].innerText;
-    document.getElementById("result").innerText = "👉 " + text;
-    canSpin = true;
+    document.getElementById("result").innerText =
+      "👉 " + prizes[index];
+    spinning = false;
   },4000);
 }
 </script>
