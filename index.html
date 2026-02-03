@@ -2,348 +2,109 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vòng quay may mắn</title>
-
 <style>
-    .coin {
-    position: fixed;
-    font-size: 26px;
-    pointer-events: none;
-    z-index: 9999;
-    animation: coinBurst 1.5s ease-out forwards;
-    filter: drop-shadow(0 0 6px gold);
-}
-
-@keyframes coinBurst {
-    0% {
-        transform: translate(0,0) scale(0.3) rotate(0deg);
-        opacity: 0;
-    }
-    20% {
-        opacity: 1;
-    }
-    100% {
-        transform: translate(var(--x), var(--y)) scale(1.2) rotate(720deg);
-        opacity: 0;
-    }
-}
 body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    text-align:center;
-    background:#f4f4f4;
+  font-family: Arial, sans-serif;
+  background:#111;
+  color:#fff;
+  text-align:center;
 }
-h1{margin:15px 0}
-.bar{
-    background:#000;
-    color:#00ff66;
-    padding:10px;
-    font-weight:bold;
+#wheel-box{
+  position:relative;
+  width:300px;
+  height:300px;
+  margin:40px auto;
 }
-#wrapper{
-    position:relative;
-    width:320px;
-    height:320px;
-    margin:20px auto;
+#wheel{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  border:8px solid #fff;
+  transition:transform 4s cubic-bezier(.17,.67,.14,1);
 }
-canvas{width:100%;height:100%}
 .arrow{
-    position:absolute;
-    top:-12px;
-    left:50%;
-    transform:translateX(-50%);
-    width:0;
-    height:0;
-    border-left:12px solid transparent;
-    border-right:12px solid transparent;
-    border-bottom:20px solid red;
-    filter: drop-shadow(0 0 6px red);
-    transition: filter 0.3s;
-}
-
-.arrow.glow{
-    filter:
-      drop-shadow(0 0 6px gold)
-      drop-shadow(0 0 12px gold)
-      drop-shadow(0 0 18px orange);
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:15px solid transparent;
+  border-right:15px solid transparent;
+  border-bottom:30px solid red;
 }
 button{
-    margin-top:20px;
-    background:#ff5722;
-    border:none;
-    color:#fff;
-    padding:15px 40px;
-    font-size:18px;
-    border-radius:8px;
+  padding:12px 30px;
+  font-size:18px;
+  cursor:pointer;
 }
-button:disabled{background:#aaa}
-#countdown{color:red;margin-top:10px;font-weight:bold}
-    #liveBox{
-    margin:8px auto;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 14px;
-    border-radius:20px;
-    background:#000;
-    color:#fff;
-    font-size:14px;
-    font-weight:bold;
-}
-
-.liveDot{
-    color:red;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink{
-    0%,50%,100%{opacity:1}
-    25%,75%{opacity:0}
+#result{
+  margin-top:20px;
+  font-size:22px;
+  font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Vòng quay may mắn</h1>
-    <div id="liveBox">
-    <span class="liveDot">●</span>
-    <span id="liveText">LIVE | 61234+ người đang chơi</span>
-    </div>
-<div class="bar">🎟️ Lượt còn lại: <span id="turns">0</span></div>
+<h2>🎯 VÒNG QUAY MAY MẮN</h2>
 
-<div id="wrapper">
-    <div class="arrow"></div>
-    <canvas id="wheel" width="320" height="320"></canvas>
+<div id="wheel-box">
+  <div class="arrow"></div>
+  <canvas id="wheel" width="300" height="300"></canvas>
 </div>
 
-<button id="spinBtn">🎯 QUAY NGAY</button>
-<div id="countdown"></div>
+<button onclick="spin()">QUAY</button>
+<div id="result"></div>
 
 <script>
-    const fakeNames = [
-  "Nguyễn Văn Hùng",
-  "Trần Thị Lan",
-  "Lê Minh Tuấn",
-  "Phạm Quốc Anh",
-  "Hoàng Thị Ngọc",
-  "Đỗ Thanh Tâm",
-  "Vũ Quang Khải",
-  "Bùi Thị Hương",
-  "Nguyễn Đức Long",
-  "Trần Minh Anh"
+const prizes = [
+  "🎁 Trúng thưởng",
+  "❌ Trượt",
+  "🍀 Chúc may mắn",
+  "⛔ Mất lượt"
 ];
-    const fakeLocations = [
-  "Hà Nội",
-  "TP.HCM",
-  "Đà Nẵng",
-  "Cần Thơ",
-  "Hải Phòng",
-  "Bình Dương",
-  "Đồng Nai",
-  "Nghệ An",
-  "Thanh Hóa",
-  "Quảng Ninh"
-];
-    const prizes = [
-  "Jackpot 5.000.000đ",
-  "3 giỏ quà Tết",
-  "Thêm 1 lượt",
-  "Mất 1 lượt",
-  "Chúc may mắn lần sau",
-  "Trượt"
-];
+
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
-const spinBtn = document.getElementById("spinBtn");
-const turnsEl = document.getElementById("turns");
-const countdownEl = document.getElementById("countdown");
+const slices = prizes.length;
+const arc = 2 * Math.PI / slices;
+let angle = 0;
 
-const MAX_TURNS = 2;
-const COOLDOWN = 12 * 60 * 60 * 1000;
+function drawWheel(){
+  for(let i=0;i<slices;i++){
+    ctx.beginPath();
+    ctx.fillStyle = i%2 ? "#ff9800" : "#4caf50";
+    ctx.moveTo(150,150);
+    ctx.arc(150,150,150,arc*i,arc*(i+1));
+    ctx.fill();
 
-const prizes = [
- "Mất lượt",
- "Chúc may mắn lần sau",
- "+50.000đ",
- "+100.000đ",
- "+200.000đ",
- "+300.000đ",
- "+500.000đ",
- "-70.000đ",
- "-80.000đ",
- "-90.000đ",
- "-200.000đ",
- "Thêm lượt",
- "Điện thoại Samsung ❌",
- "3 giỏ quà Tết ❌",
- "Máy sấy tóc ❌",
- "Bàn là ❌"
-];
-
-const blocked = [
- "Điện thoại Samsung ❌",
- "3 giỏ quà Tết ❌",
- "Máy sấy tóc ❌",
- "Bàn là ❌"
-];
-
-const colors=[
-"#95a5a6","#bdc3c7","#2ecc71","#27ae60",
-"#16a085","#f1c40f","#f39c12","#e67e22",
-"#d35400","#c0392b","#e74c3c","#9b59b6",
-"#3498db","#1abc9c","#7f8c8d","#f7dc6f"
-];
-
-let angle=0, spinning=false;
-
-function getData(){
-    return JSON.parse(localStorage.getItem("wheelData")) || {
-        turns: MAX_TURNS,
-        time: 0
-    };
+    ctx.save();
+    ctx.translate(150,150);
+    ctx.rotate(arc*i + arc/2);
+    ctx.fillStyle="#fff";
+    ctx.font="16px Arial";
+    ctx.textAlign="right";
+    ctx.fillText(prizes[i],130,5);
+    ctx.restore();
+  }
 }
+drawWheel();
 
-function saveData(d){
-    localStorage.setItem("wheelData",JSON.stringify(d));
+function spin(){
+  const randomDeg = Math.floor(Math.random()*360) + 1440;
+  angle += randomDeg;
+  canvas.style.transform = `rotate(${angle}deg)`;
+
+  setTimeout(()=>{
+    const actual = angle % 360;
+    const index = Math.floor((360 - actual) / (360/slices)) % slices;
+    document.getElementById("result").innerText =
+      "👉 Kết quả: " + prizes[index];
+  },4000);
 }
-
-function updateTurns(){
-    const d = getData();
-    turnsEl.innerText = d.turns;
-    spinBtn.disabled = d.turns<=0;
-}
-
-function draw(){
-    ctx.clearRect(0,0,320,320);
-    const slice=2*Math.PI/prizes.length;
-    for(let i=0;i<prizes.length;i++){
-        ctx.beginPath();
-        ctx.fillStyle=colors[i%colors.length];
-        ctx.moveTo(160,160);
-        ctx.arc(160,160,150,angle+i*slice,angle+(i+1)*slice);
-        ctx.fill();
-
-        ctx.save();
-        ctx.translate(160,160);
-        ctx.rotate(angle+i*slice+slice/2);
-        ctx.textAlign="right";
-        ctx.font="14px Arial";
-        ctx.fillStyle="#000";
-        ctx.fillText(prizes[i],140,5);
-        ctx.restore();
-    }
-}
-draw();
-
-function startCountdown(){
-    setInterval(()=>{
-        const d=getData();
-        if(d.turns>0) return;
-        const remain=COOLDOWN-(Date.now()-d.time);
-        if(remain<=0){
-            saveData({turns:MAX_TURNS,time:0});
-            countdownEl.innerText="";
-            updateTurns();
-            return;
-        }
-        const h=Math.floor(remain/3600000);
-        const m=Math.floor(remain%3600000/60000);
-        const s=Math.floor(remain%60000/1000);
-        countdownEl.innerText=`⏳ Chơi lại sau ${h}h ${m}m ${s}s`;
-    },1000);
-}
-
-spinBtn.onclick = ()=>{
-    coinEffectOnClick();        // 💥 coin bay khi bấm
-    document.querySelector(".arrow").classList.add("glow");
-
-    if(spinning) return;
-    let d = getData();
-    if(d.turns<=0) return;
-
-    spinning = true;
-    d.turns--;
-    if(d.turns<=0) d.time = Date.now();
-    saveData(d);
-    updateTurns();
-
-    let target;
-    do{
-        target = Math.floor(Math.random()*prizes.length);
-    }while(blocked.includes(prizes[target]));
-
-    const slice = 360 / prizes.length;
-    const spinDeg = 360*5 + (360 - (target*slice + slice/2));
-
-    let cur = 0;
-    const timer = setInterval(()=>{
-        cur += 10;
-        angle += 10 * Math.PI / 180;
-        draw();
-
-        if(cur >= spinDeg){
-            clearInterval(timer);
-            spinning = false;
-
-            // ✨ kim phát sáng mạnh khi dừng
-            const arrow = document.querySelector(".arrow");
-            arrow.classList.add("glow");
-
-            // 🎯 LẤY KẾT QUẢ ĐÚNG THEO KIM
-            const result = getPrizeByAngle();
-
-            setTimeout(()=>{
-                alert("🎉 Bạn trúng: " + result);
-                arrow.classList.remove("glow");
-            },300);
-        }
-    },20);
-};
-
-updateTurns();
-startCountdown();
-    function coinEffectOnClick(){
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-
-    for(let i=0;i<30;i++){
-        const coin = document.createElement("div");
-        coin.className = "coin";
-        coin.innerText = Math.random() > 0.5 ? "🪙" : "💸";
-
-        coin.style.left = centerX + "px";
-        coin.style.top = centerY + "px";
-
-        const x = (Math.random() - 0.5) * 400 + "px";
-        const y = (Math.random() - 0.5) * 400 + "px";
-        coin.style.setProperty("--x", x);
-        coin.style.setProperty("--y", y);
-
-        document.body.appendChild(coin);
-        setTimeout(()=>coin.remove(),1600);
-    }
-            }
-    function getPrizeByAngle(){
-    const slice = 360 / prizes.length;
-
-    // góc kim chỉ (12h)
-    let deg = (360 - (angle * 180 / Math.PI) % 360 + 90) % 360;
-    let index = Math.floor(deg / slice);
-
-    return prizes[index];
-    }
-    let liveCount = 61234;
-
-setInterval(()=>{
-    const change = Math.floor(Math.random()*20) - 10; // +-10
-    liveCount += change;
-    if(liveCount < 60000) liveCount = 60000;
-
-    document.getElementById("liveText").innerText =
-        `LIVE | ${liveCount.toLocaleString()}+ người đang chơi`;
-}, 2000);
 </script>
 
 </body>
