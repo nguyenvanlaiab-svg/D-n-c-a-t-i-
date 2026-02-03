@@ -5,166 +5,168 @@
 <title>Vòng quay may mắn</title>
 <style>
 body{
-  margin:0;
+  font-family: Arial, Helvetica, sans-serif;
   background:#f5f5f5;
-  font-family:Arial,Helvetica,sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  text-align:center;
+  margin:0;
+}
+h1{margin:20px 0}
+.top{
+  background:#111;
+  color:#00ff66;
+  padding:12px;
+  font-weight:bold;
+  border-radius:10px;
+  margin:0 16px 10px;
 }
 .box{
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  text-align:center;
+  position:relative;
+  width:320px;
+  margin:20px auto;
 }
-canvas{margin:10px auto;display:block}
-button{
-  background:#ee4d2d;
+canvas{display:block;margin:auto}
+.pointer{
+  position:absolute;
+  top:-10px; left:50%;
+  transform:translateX(-50%);
+  width:0;height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:26px solid red;
+}
+.btn{
+  margin-top:20px;
+  background:#f2552c;
   color:#fff;
   border:none;
-  padding:12px 30px;
-  border-radius:25px;
+  padding:14px 40px;
   font-size:18px;
+  border-radius:10px;
   font-weight:bold;
 }
-button:disabled{background:#aaa}
-#turns{margin-top:10px;font-weight:bold}
-#result{margin-top:10px;font-size:16px;font-weight:bold}
-#popup{
+.popup{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.5);
+  background:rgba(0,0,0,.6);
   display:none;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
 }
 .popup-box{
   background:#fff;
-  padding:25px;
-  border-radius:16px;
-  text-align:center;
-  width:280px;
+  padding:20px;
+  width:260px;
+  border-radius:14px;
 }
-.popup-box h2{margin:0 0 10px}
-.popup-box button{margin-top:15px}
+.popup-box h3{margin:0 0 10px}
 </style>
 </head>
+
 <body>
 
+<h1>Vòng quay may mắn</h1>
+<div class="top">🎫 Lượt còn lại: <span id="turns">5</span></div>
+
 <div class="box">
-  <h2>🎁 Vòng quay may mắn</h2>
+  <div class="pointer"></div>
   <canvas id="wheel" width="300" height="300"></canvas>
-  <button id="spinBtn">QUAY</button>
-  <div id="turns">Lượt còn lại: 5</div>
-  <div id="result"></div>
 </div>
 
-<div id="popup">
+<button class="btn" onclick="spin()">🎯 QUAY NGAY</button>
+
+<div class="popup" id="popup">
   <div class="popup-box">
-    <h2 id="popupTitle"></h2>
-    <div id="popupMsg"></div>
-    <button onclick="closePopup()">OK</button>
+    <h3 id="popTitle"></h3>
+    <p id="popMsg"></p>
+    <button class="btn" onclick="closePop()">OK</button>
   </div>
 </div>
 
 <script>
-// ===== DANH SÁCH Ô =====
 const prizes=[
- "Chúc may mắn lần sau",
- "Trượt",
- "Thêm lượt",
- "Mất lượt",
- "Jackpot 5 triệu 💰",
- "3 giỏ quà Tết 🎁",
- "Ấm siêu tốc 🔥",
- "Điện thoại Samsung 📱",
- "Máy sấy tóc 💨"
+ {t:"+50.000đ",w:1},
+ {t:"+100.000đ",w:1},
+ {t:"+200.000đ",w:1},
+ {t:"+300.000đ",w:1},
+ {t:"+500.000đ",w:1},
+ {t:"-70.000đ",w:1},
+ {t:"-80.000đ",w:1},
+ {t:"-90.000đ",w:1},
+ {t:"-200.000đ",w:1},
+ {t:"Mất lượt",w:1},
+ {t:"Thêm lượt",w:1},
+ {t:"Chúc may mắn",w:1},
+
+ // giải trưng bày – 0%
+ {t:"🎁 3 giỏ quà Tết",w:0},
+ {t:"📱 Điện thoại Samsung",w:0},
+ {t:"💨 Máy sấy tóc",w:0},
+ {t:"🔥 Bàn là",w:0},
 ];
 
-// ===== CHỈ SỐ Ô ĐƯỢC PHÉP TRÚNG (KHÔNG GIẢI) =====
-const SAFE_INDEXES = [0,1]; 
-// 0 = Chúc may mắn lần sau
-// 1 = Trượt
-// => TẤT CẢ GIẢI THƯỞNG = 0%
+const colors=["#2ecc71","#27ae60","#16a085","#f1c40f","#f39c12",
+"#e67e22","#d35400","#c0392b","#e74c3c","#3498db",
+"#9b59b6","#95a5a6","#f7d794","#feca57","#48dbfb","#ff9ff3"];
 
-let turns=5,spinning=false,angle=0;
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
-const center=150,radius=140;
-const step=2*Math.PI/prizes.length;
+const c=document.getElementById("wheel");
+const ctx=c.getContext("2d");
+const r=c.width/2;
+let angle=0,spinning=false,turns=5;
 
-function drawWheel(){
- ctx.clearRect(0,0,300,300);
- for(let i=0;i<prizes.length;i++){
-  const start=i*step;
-  ctx.beginPath();
-  ctx.moveTo(center,center);
-  ctx.arc(center,center,radius,start,start+step);
-  ctx.fillStyle=i%2?"#ffecec":"#fff3e0";
-  ctx.fill();
-  ctx.save();
-  ctx.translate(center,center);
-  ctx.rotate(start+step/2);
-  ctx.textAlign="right";
-  ctx.fillStyle="#000";
-  ctx.font="14px Arial";
-  ctx.fillText(prizes[i],radius-10,5);
-  ctx.restore();
- }
- // kim
- ctx.fillStyle="red";
- ctx.beginPath();
- ctx.moveTo(center-10,10);
- ctx.lineTo(center+10,10);
- ctx.lineTo(center,30);
- ctx.fill();
+function draw(){
+  const step=2*Math.PI/prizes.length;
+  prizes.forEach((p,i)=>{
+    ctx.beginPath();
+    ctx.moveTo(r,r);
+    ctx.arc(r,r,r,i*step+angle,(i+1)*step+angle);
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fill();
+    ctx.save();
+    ctx.translate(r,r);
+    ctx.rotate(i*step+step/2+angle);
+    ctx.textAlign="right";
+    ctx.fillStyle="#000";
+    ctx.font="14px Arial";
+    ctx.fillText(p.t,r-10,5);
+    ctx.restore();
+  });
 }
-drawWheel();
+draw();
 
-document.getElementById("spinBtn").onclick=()=>{
- if(spinning||turns<=0)return;
- spinning=true;
- turns--;
- document.getElementById("turns").innerText="Lượt còn lại: "+turns;
+function spin(){
+  if(spinning||turns<=0) return;
+  turns--;
+  document.getElementById("turns").innerText=turns;
+  spinning=true;
 
- // 🎯 CHỌN KẾT QUẢ CHẮC CHẮN KHÔNG TRÚNG
- const targetIndex = SAFE_INDEXES[Math.floor(Math.random()*SAFE_INDEXES.length)];
- const targetAngle = (prizes.length - targetIndex) * step + Math.random()*step;
+  // chỉ chọn ô w>0
+  const pool=[];
+  prizes.forEach((p,i)=>{if(p.w>0)for(let k=0;k<p.w;k++)pool.push(i)});
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  const step=2*Math.PI/prizes.length;
+  const target=pick*step;
+  let speed=0.35;
 
- let speed=0.5;
- const anim=()=>{
-  speed*=0.985;
-  angle+=speed;
-  ctx.save();
-  ctx.translate(center,center);
-  ctx.rotate(angle);
-  ctx.translate(-center,-center);
-  drawWheel();
-  ctx.restore();
-  if(speed<0.002){
-   spinning=false;
-   angle = targetAngle;
-   const prize = prizes[targetIndex];
-   document.getElementById("result").innerText="🎉 "+prize;
-   document.getElementById("turns").innerText="Lượt còn lại: "+turns;
-   showPopup("Kết quả",prize);
-   return;
-  }
-  requestAnimationFrame(anim);
- };
- anim();
-};
-
-function showPopup(t,m){
- document.getElementById("popupTitle").innerText=t;
- document.getElementById("popupMsg").innerText=m;
- document.getElementById("popup").style.display="flex";
+  (function anim(){
+    speed*=0.985;
+    angle+=speed;
+    draw();
+    if(speed<0.002){
+      spinning=false;
+      show(prizes[pick].t);
+      return;
+    }
+    requestAnimationFrame(anim);
+  })();
 }
-function closePopup(){
- document.getElementById("popup").style.display="none";
+
+function show(text){
+  document.getElementById("popup").style.display="flex";
+  document.getElementById("popTitle").innerText="🎉 Kết quả";
+  document.getElementById("popMsg").innerText=text;
+}
+function closePop(){
+  document.getElementById("popup").style.display="none";
 }
 </script>
 
