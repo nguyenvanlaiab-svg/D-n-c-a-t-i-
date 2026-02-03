@@ -16,7 +16,7 @@ h2{margin-top:20px}
   color:#00ff00;
   padding:10px;
   border-radius:20px;
-  width:200px;
+  width:220px;
   margin:10px auto;
 }
 .wheel-box{
@@ -33,14 +33,14 @@ h2{margin-top:20px}
 }
 .pointer{
   position:absolute;
-  top:-10px;
+  top:-8px;
   left:50%;
   transform:translateX(-50%);
   width:0;
   height:0;
-  border-left:15px solid transparent;
-  border-right:15px solid transparent;
-  border-bottom:30px solid red;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:28px solid red;
 }
 button{
   background:#ff5722;
@@ -51,7 +51,7 @@ button{
   font-size:18px;
   cursor:pointer;
 }
-button:disabled{opacity:0.5}
+button:disabled{opacity:.5}
 </style>
 </head>
 
@@ -89,7 +89,7 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const size = prizes.length;
 const arc = 2 * Math.PI / size;
-let angle = 0;
+let currentRotation = 0;
 let spinning = false;
 let turns = 5;
 
@@ -115,22 +115,30 @@ drawWheel();
 
 document.getElementById("spinBtn").onclick = ()=>{
   if(spinning || turns<=0) return;
-
   spinning = true;
+
   turns--;
   document.getElementById("count").innerText = turns;
 
-  // 👉 chọn ô bất kỳ (trúng KHỚP kim)
-  const index = Math.floor(Math.random()*size);
+  const index = Math.floor(Math.random() * size);
 
-  // công thức khóa kim TRÙNG ô
-  const rotateDeg = 360*5 + (360 - index*(360/size) - (360/size)/2);
-  angle += rotateDeg;
+  // 🔥 CÔNG THỨC CHUẨN – KIM TRÙNG 100%
+  const sliceDeg = 360 / size;
+  const targetDeg =
+    360 * 5 +
+    (360 - index * sliceDeg - sliceDeg / 2) -
+    90; // FIX LỆCH CANVAS
 
-  canvas.style.transform = `rotate(${angle}deg)`;
+  currentRotation += targetDeg;
+  canvas.style.transform = `rotate(${currentRotation}deg)`;
 
   setTimeout(()=>{
     alert("Kết quả: " + prizes[index]);
+
+    if(prizes[index] === "Thêm lượt"){
+      turns++;
+      document.getElementById("count").innerText = turns;
+    }
     spinning = false;
   },4200);
 };
