@@ -197,35 +197,49 @@ function startCountdown(){
     },1000);
 }
 
-spinBtn.onclick=()=>{
-    coinEffectOnClick();
+spinBtn.onclick = ()=>{
+    coinEffectOnClick();        // 💥 coin bay khi bấm
+    document.querySelector(".arrow").classList.add("glow");
+
     if(spinning) return;
-    let d=getData();
+    let d = getData();
     if(d.turns<=0) return;
 
-    spinning=true;
+    spinning = true;
     d.turns--;
-    if(d.turns<=0) d.time=Date.now();
+    if(d.turns<=0) d.time = Date.now();
     saveData(d);
     updateTurns();
 
     let target;
     do{
-        target=Math.floor(Math.random()*prizes.length);
+        target = Math.floor(Math.random()*prizes.length);
     }while(blocked.includes(prizes[target]));
 
-    const slice=360/prizes.length;
-    const spinDeg=360*5+(360-(target*slice+slice/2));
+    const slice = 360 / prizes.length;
+    const spinDeg = 360*5 + (360 - (target*slice + slice/2));
 
-    let cur=0;
-    const timer=setInterval(()=>{
-        cur+=10;
-        angle+=10*Math.PI/180;
+    let cur = 0;
+    const timer = setInterval(()=>{
+        cur += 10;
+        angle += 10 * Math.PI / 180;
         draw();
-        if(cur>=spinDeg){
+
+        if(cur >= spinDeg){
             clearInterval(timer);
-            spinning=false;
-            alert("🎉 Kết quả: "+prizes[target]);
+            spinning = false;
+
+            // ✨ kim phát sáng mạnh khi dừng
+            const arrow = document.querySelector(".arrow");
+            arrow.classList.add("glow");
+
+            // 🎯 LẤY KẾT QUẢ ĐÚNG THEO KIM
+            const result = getPrizeByAngle();
+
+            setTimeout(()=>{
+                alert("🎉 Bạn trúng: " + result);
+                arrow.classList.remove("glow");
+            },300);
         }
     },20);
 };
